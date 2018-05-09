@@ -42,6 +42,10 @@ class Ship{
     return JSON.parse(JSON.stringify(this));
   }
 
+  follow(){
+    camera.position.lookAt(this.mesh.position);
+  }
+
   updateSector(){
     this.sector.x = Math.floor(this.mesh.position.x / this.influenceRange);
     this.sector.y = Math.floor(this.mesh.position.y / this.influenceRange);
@@ -52,54 +56,6 @@ class Ship{
       sectors.set(key, []);
     }
     sectors.get(key).push(this);
-  }
-
-  computeForcesWorking(){
-    let influenceArea = [];
-    for(let x = -1; x <= 1; x++){
-      for(let y = -1; y <= 1; y++){
-        for(let z = -1; z <= 1; z++){
-          influenceArea.push(sectors.get(
-            "x" + (this.sector.x + x) +
-            "y" + (this.sector.y + y) +
-            "z" + (this.sector.z + z) +
-            "t" + this.team
-          ));
-        }
-      }
-    }
-
-    influenceArea.forEach((sector) => {
-      if(sector != undefined){
-        sector.forEach((neighbour, index) => {
-          //check if isnt yourself
-          if(neighbour.mesh.geometry.uuid != this.mesh.geometry.uuid){
-            //check influence sphere
-            let distVect = neighbour.mesh.position.clone().sub(this.mesh.position);
-            let distSq = distVect.clone().lengthSq();
-            if(distSq < (this.influenceRange * this.influenceRange)){
-
-              //compute separation
-              if(distSq < (this.separationDistance * this.separationDistance)){
-                let separation = distVect.clone().normalize();
-                separation.multiplyScalar(this.separationDistance);
-                separation.sub(distVect);
-                this.separationForces.push(separation.clone().negate());
-              }
-
-              //check if it is within the viewing angle
-              if(this.velocity.dot(neighbour.mesh.position) > this.influenceAngle){
-                //compute cohesion
-                this.cohesionForces.push(distVect.clone());
-
-                //compute alignment
-                this.alignmentForces.push(neighbour.velocity.clone());
-              }
-            }
-          }
-        });
-      }
-    });
   }
 
   computeForces(){
