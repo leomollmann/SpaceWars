@@ -13,50 +13,82 @@
     <script src="ShaderPass.js" type="text/javascript"></script>
     <script src="FXAAShader.js" type="text/javascript"></script>
     <script src="Ship.js" type="text/javascript"></script>
+    <script src="CelestialBody.js" type="text/javascript"></script>
     <canvas id="threejs" style="margin: 0, padding: 0"></canvas>
     <script>
-      const renderer = new THREE.WebGLRenderer({canvas: document.getElementById("threejs")});
+      var scene = new THREE.Scene();
+      var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 500 );
+      camera.position.z = 30;
 
-      renderer.setClearColor(0x000000);
+      var renderer = new THREE.WebGLRenderer( { antialias: true, canvas: document.getElementById("threejs")} );
+      renderer.setPixelRatio( window.devicePixelRatio );
       renderer.setSize( window.innerWidth, window.innerHeight );
+      renderer.setClearColor( 0x000000, 1 );
 
-      const scene = new THREE.Scene();
+      var controls = new THREE.OrbitControls( camera, renderer.domElement );
+
+      var lights = [];
+      lights[0] = new THREE.PointLight( 0xffffff, 1, 0 );
+      lights[1] = new THREE.PointLight( 0xffffff, 1, 0 );
+      lights[2] = new THREE.PointLight( 0xffffff, 1, 0 );
+
+      lights[0].position.set( 0, 200, 0 );
+      lights[1].position.set( 100, 200, 100 );
+      lights[2].position.set( - 100, - 200, - 100 );
+
+      lights.forEach((light) => scene.add(light));
+
+      const materials = {
+        basicLine: new THREE.LineBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.5}),
+        phongMesh: new THREE.MeshPhongMaterial({color: 0x156289, emissive: 0x072534, flatShading: true})
+      };
+
       var sectors = new Map();
       var ships = [];
-      //scene.fog = new THREE.FogExp2( 0x000000, 0.008 );
+      var celestialBodys = [];
 
-      const camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 1000 );
-    //  const controls = new THREE.OrbitControls(camera);
-      const composer = new THREE.EffectComposer(renderer);
-
-      scene.add(new THREE.AmbientLight(0xffffff, 0.1));
-      scene.add(new THREE.DirectionalLight(0xffffff, 0.8));
-      scene.add(camera);
-      camera.position.set( 0, 0, 40 );
-
-      const material = new THREE.MeshLambertMaterial();
       for(let i = 0; i < 200; i++){
-        ships.push(new Ship(1));
+        ships.push(new Ship(1, new THREE.Vector3(Math.random()-0.5,Math.random()-0.5,Math.random()-0.5)));
       }
 
-      var pass = [];
-      pass.push(new THREE.RenderPass(scene, camera));
-      //pass.push(new THREE.ShaderPass(THREE.CopyShader));
-      //pass.push(new THREE.ShaderPass(THREE.FXAAShader));
+      celestialBodys.push(new CelestialBody(60, 3));
 
-      pass.forEach((item) => {composer.addPass(item)});
-      pass[pass.length - 1].renderToScreen = true;
+      ships.forEach((ship) => {
+        ship.buildMesh(
+          new THREE.ConeBufferGeometry(1, 2, 4, 1),
+          materials.basicLine,
+          materials.phongMesh,
+          new THREE.Vector3(Math.random()-0.5,Math.random()-0.5,Math.random()-0.5)
+         );
+        ship.addToScene(scene);
+      });
+
+      celestialBodys.forEach((body) => {
+        body.buildMesh(
+          materials.basicLine,
+          materials.phongMesh,
+          new THREE.Vector3(0, 0, 0)
+        );
+        body.addToScene(scene);
+      });
 
       function animate(){
-        ships.forEach((item) => {item.updateSector()});
-        ships.forEach((item) => {item.computeForces()});
-        ships.forEach((item) => {item.applyForces()});
-        ships[0].follow();
+        ships.forEach((ship) => {ship.updateSector()});
+        ships.forEach((ship) => {ship.computeForces()});
+        ships.forEach((ship) => {ship.applyForces()});
+
         sectors.clear();
-        //controls.update();
-        composer.render();
+        controls.update();
+        renderer.render(scene, camera);
         requestAnimationFrame(animate);
       }
+
+      window.addEventListener( 'resize', function () {
+      	camera.aspect = window.innerWidth / window.innerHeight;
+      	camera.updateProjectionMatrix();
+        renderer.setSize( window.innerWidth, window.innerHeight );
+      }, false);
+
       animate();
     </script>
   </body>

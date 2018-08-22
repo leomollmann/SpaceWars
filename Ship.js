@@ -1,25 +1,11 @@
 class Ship{
-  constructor(team, mesh, position, velocity){
+  constructor(team, velocity){
     this.up = new THREE.Vector3(0,1,0);
     this.forces = new THREE.Vector3(0,0,0);
+    this.velocity = velocity;
     this.sector = {};
     this.team = team;
-
-    if(position != undefined){
-      this.mesh = mesh;
-    }else{
-      this.mesh = new THREE.Mesh(new THREE.ConeGeometry(1, 2, 4, 1), material);
-    }
-    if(position != undefined){
-      this.mesh.position.set(position.x, position.y, position.z);
-    }else{
-      this.mesh.position.set(Math.random()-0.5,Math.random()-0.5,Math.random()-0.5);
-    }
-    if(velocity != undefined){
-      this.velocity = velocity;
-    }else{
-      this.velocity = new THREE.Vector3(Math.random()-0.5,Math.random()-0.5,Math.random()-0.5);
-    }
+    this.group = new THREE.Group();
 
     this.cohesionForces = [];
     this.separationForces = [];
@@ -34,22 +20,27 @@ class Ship{
     this.influenceRange = 20.0;
     this.influenceAngle = -0.7;
     this.separationDistance = 8.0;
+  }
 
-    scene.add(this.mesh);
+  buildMesh(geometry, lineMaterial, meshMaterial, position){
+	
+    this.group.add(new THREE.LineSegments(geometry, lineMaterial));
+    this.group.add(new THREE.Mesh(geometry, meshMaterial));
+    this.group.position.set(position.x, position.y, position.z);
+  }
+
+  addToScene(scene){
+    scene.add(this.group);
   }
 
   clone(){
     return JSON.parse(JSON.stringify(this));
   }
 
-  follow(){
-    camera.position.lookAt(this.mesh.position);
-  }
-
   updateSector(){
-    this.sector.x = Math.floor(this.mesh.position.x / this.influenceRange);
-    this.sector.y = Math.floor(this.mesh.position.y / this.influenceRange);
-    this.sector.z = Math.floor(this.mesh.position.z / this.influenceRange);
+    this.sector.x = Math.floor(this.group.position.x / this.influenceRange);
+    this.sector.y = Math.floor(this.group.position.y / this.influenceRange);
+    this.sector.z = Math.floor(this.group.position.z / this.influenceRange);
     let key = "x" + this.sector.x + "y" + this.sector.y + "z" + this.sector.z + "t" + this.team;
 
     if(sectors.get(key) == undefined){
@@ -79,9 +70,9 @@ class Ship{
         sector.forEach((neighbour, index) => {
           if(neighbour != undefined){
             //check if isnt yourself
-            if(neighbour.mesh.geometry.uuid != this.mesh.geometry.uuid){
+            if(neighbour.group.uuid != this.group.uuid){
               //check influence sphere
-              let distVect = neighbour.mesh.position.clone().sub(this.mesh.position);
+              let distVect = neighbour.group.position.clone().sub(this.group.position);
               let distSq = distVect.clone().lengthSq();
               if(distSq < (this.influenceRange * this.influenceRange)){
 
@@ -95,14 +86,14 @@ class Ship{
                 }
 
                 //check if it is within the viewing angle
-                if(this.velocity.dot(neighbour.mesh.position) > this.influenceAngle){
+                if(this.velocity.dot(neighbour.group.position) > this.influenceAngle){
                   //compute cohesion
                   this.cohesionForces.push(distVect.clone());
 
                   //compute alignment
                   this.alignmentForces.push(neighbour.velocity.clone());
                 }
-                if(neighbour.velocity.dot(this.mesh.position) > neighbour.influenceAngle){
+                if(neighbour.velocity.dot(this.group.position) > neighbour.influenceAngle){
                   //compute cohesion
                   neighbour.cohesionForces.push(distVect.clone().negate());
 
@@ -145,11 +136,11 @@ class Ship{
       this.alignmentForces = [];
     }
 
-    this.forces = this.mesh.position.clone().multiplyScalar(-this.boundingWeight);
+    this.forces = this.group.position.clone().multiplyScalar(-this.boundingWeight);
     this.velocity.add(this.forces);
 
     this.velocity.clampLength(0,this.maxVelocity);
-    this.mesh.position.add(this.velocity);
-    this.mesh.quaternion.setFromUnitVectors(this.up, this.velocity.clone().normalize());
+    this.group.position.add(this.velocity);
+    this.group.quaternion.setFromUnitVectors(this.up, this.velocity.clone().normalize());
   }
 }
