@@ -10,23 +10,30 @@ class Ship{
     this.cohesionForces = [];
     this.separationForces = [];
     this.alignmentForces = [];
+    this.boundingForces = [];
 
-    this.cohesionWeight = 0.0005;
+    this.cohesionWeight = 0.001;
     this.separationWeight = 0.01;
-    this.alignmentWeight = 0.008;
-    this.boundingWeight = 0.00001;
+    this.alignmentWeight = 0.01;
+    this.boundingWeight = 0.0001;
 
-    this.maxVelocity = 0.25;
-    this.influenceRange = 20.0;
-    this.influenceAngle = -0.7;
-    this.separationDistance = 8.0;
+    this.maxVelocity = 0.4;
+    this.minVelocity = 0.02;
+    this.influenceRange = 15.0;
+    this.influenceAngle = -0.8;
+    this.separationDistance = 7.0;
+
+    this.celestialBodys = [];
   }
 
   buildMesh(geometry, lineMaterial, meshMaterial, position){
-	
-    this.group.add(new THREE.LineSegments(geometry, lineMaterial));
+    this.group.add(new THREE.Mesh(geometry, lineMaterial));
     this.group.add(new THREE.Mesh(geometry, meshMaterial));
     this.group.position.set(position.x, position.y, position.z);
+  }
+
+  addCelestialBodys(body){
+    this.celestialBodys.push(body);
   }
 
   addToScene(scene){
@@ -109,6 +116,16 @@ class Ship{
         sector[neighbourIndex] = undefined;
       }
     });
+
+    celestialBodys.forEach((body) => {
+      let dist = this.group.position.distanceTo(body.group.position);
+      if(dist <= body.radius * 3.0){
+        let scalar = dist - (body.radius * 1.5);
+        let direction = body.group.position.clone().sub(this.group.position);
+        direction.normalize();
+        this.boundingForces.push(direction.multiplyScalar(scalar));
+      }
+    });
   }
 
   applyForces(){
@@ -136,10 +153,15 @@ class Ship{
       this.alignmentForces = [];
     }
 
-    this.forces = this.group.position.clone().multiplyScalar(-this.boundingWeight);
-    this.velocity.add(this.forces);
+    if(this.boundingForces.length > 0){
+      this.forces.set(0,0,0);
+      this.boundingForces.forEach((item) => {this.forces.add(item)});
+      this.forces.multiplyScalar(this.boundingWeight);
+      this.velocity.add(this.forces);
+      this.boundingForces = [];
+    }
 
-    this.velocity.clampLength(0,this.maxVelocity);
+    this.velocity.clampLength(this.minVelocity, this.maxVelocity);
     this.group.position.add(this.velocity);
     this.group.quaternion.setFromUnitVectors(this.up, this.velocity.clone().normalize());
   }

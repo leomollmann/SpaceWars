@@ -74,6 +74,15 @@ class CelestialBody{
       this.geometry.faces = faces;
     }
 
+    const simplex = new SimplexNoise();
+
+    this.geometry.vertices.forEach((vertex) => {
+      const octave1 = simplex.noise3d(vertex.x * 1, vertex.y * 1, vertex.z * 1)/10;
+      const octave2 = simplex.noise3d(vertex.x * 2, vertex.y * 2, vertex.z * 2)/20;
+      const octave3 = simplex.noise3d(vertex.x * 4, vertex.y * 4, vertex.z * 4)/40;
+      vertex.add(vertex.clone().normalize().multiplyScalar(octave1 + octave2 + octave3));
+    });
+
     this.geometry.scale(this.radius, this.radius, this.radius);
     this.geometry.computeFaceNormals();
     this.geometry.computeVertexNormals();
@@ -81,8 +90,18 @@ class CelestialBody{
     this.geometry = new THREE.BufferGeometry().fromGeometry(this.geometry);
   }
 
+  setRotation(rotationAxis, rotationSpeed){
+  	this.rotationAxis = rotationAxis;
+  	this.rotationSpeed = rotationSpeed;
+  	this.rotation = 0;
+  }
+
+  setOrbit(){
+
+  }
+
   buildMesh(lineMaterial, meshMaterial, position){
-    this.group.add(new THREE.LineSegments(this.geometry, lineMaterial));
+    this.group.add(new THREE.Mesh(this.geometry, lineMaterial));
     this.group.add(new THREE.Mesh(this.geometry, meshMaterial));
     this.group.position.set(position.x, position.y, position.z);
   }
@@ -116,5 +135,10 @@ class CelestialBody{
     let i = this.addVertex(middle);
     this.middlePointIndexCache[key] = i;
     return i;
+  }
+
+  rotate(){
+  	this.rotation += this.rotationSpeed;
+  	this.group.quaternion.setFromAxisAngle(this.rotationAxis, this.rotation);
   }
 }
