@@ -15,13 +15,13 @@ class Ship{
     this.cohesionWeight = 0.001;
     this.separationWeight = 0.01;
     this.alignmentWeight = 0.01;
-    this.boundingWeight = 0.0001;
+    this.boundingWeight = 0.0002;
 
     this.maxVelocity = 0.4;
     this.minVelocity = 0.02;
-    this.influenceRange = 15.0;
-    this.influenceAngle = -0.8;
-    this.separationDistance = 7.0;
+    this.influenceRange = 20.0;
+    this.influenceAngle = -Math.PI;
+    this.separationDistance = 10.0;
 
     this.celestialBodys = [];
   }
@@ -93,14 +93,14 @@ class Ship{
                 }
 
                 //check if it is within the viewing angle
-                if(this.velocity.dot(neighbour.group.position) > this.influenceAngle){
+                if(this.velocity.clone().normalize().dot(neighbour.group.position.clone().normalize()) > this.influenceAngle){
                   //compute cohesion
                   this.cohesionForces.push(distVect.clone());
 
                   //compute alignment
                   this.alignmentForces.push(neighbour.velocity.clone());
                 }
-                if(neighbour.velocity.dot(this.group.position) > neighbour.influenceAngle){
+                if(neighbour.velocity.clone().normalize().dot(this.group.position.clone().normalize()) > neighbour.influenceAngle){
                   //compute cohesion
                   neighbour.cohesionForces.push(distVect.clone().negate());
 
@@ -118,13 +118,22 @@ class Ship{
     });
 
     celestialBodys.forEach((body) => {
-      let dist = this.group.position.distanceTo(body.group.position);
-      if(dist <= body.radius * 3.0){
-        let scalar = dist - (body.radius * 1.5);
-        let direction = body.group.position.clone().sub(this.group.position);
-        direction.normalize();
-        this.boundingForces.push(direction.multiplyScalar(scalar));
-      }
+      let direction = body.group.position.clone().sub(this.group.position);
+  	  let distance = direction.length();
+  	  if(distance <= body.radius * 4.0){
+    		if(distance <= body.radius * 2.0){
+    		  let scalar = distance - (body.radius * 2.0);
+              direction.normalize();
+              this.boundingForces.push(direction.multiplyScalar(scalar));
+    		}else if(distance <= body.radius * 3.0){
+    		  let dot = this.velocity.clone().normalize().dot(direction.clone().normalize());
+    		  this.boundingForces.push(direction.multiplyScalar(Math.pow(1.5708 - dot, 2) * 0.02));
+    		}else{
+    		  let scalar = distance - (body.radius * 3.0);
+          direction.normalize();
+          this.boundingForces.push(direction.multiplyScalar(scalar));
+    		}
+  	  }
     });
   }
 
@@ -153,6 +162,8 @@ class Ship{
       this.alignmentForces = [];
     }
 
+    this.velocity.clampLength(this.minVelocity, this.maxVelocity);
+
     if(this.boundingForces.length > 0){
       this.forces.set(0,0,0);
       this.boundingForces.forEach((item) => {this.forces.add(item)});
@@ -161,7 +172,6 @@ class Ship{
       this.boundingForces = [];
     }
 
-    this.velocity.clampLength(this.minVelocity, this.maxVelocity);
     this.group.position.add(this.velocity);
     this.group.quaternion.setFromUnitVectors(this.up, this.velocity.clone().normalize());
   }

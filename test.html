@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+  </head>
+  <body style="padding: 0; margin: 0">
+    <script src="three.js" type="text/javascript"></script>
+    <script src="OrbitControls.js" type="text/javascript"></script>
+    <script src="Simplex.js" type="text/javascript"></script>
+    <script src="dat.gui.min.js" type="text/javascript"></script>
+    <canvas id="threejs" style="margin: 0, padding: 0"></canvas>
+    <script>
+      var scene = new THREE.Scene();
+      var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+      camera.position.z = 10;
+
+      var renderer = new THREE.WebGLRenderer( { antialias: true, canvas: document.getElementById("threejs")} );
+      renderer.setPixelRatio( window.devicePixelRatio );
+      renderer.setSize( window.innerWidth, window.innerHeight );
+      renderer.setClearColor( 0x000000, 1 );
+
+      var controls = new THREE.OrbitControls( camera, renderer.domElement );
+
+      var lights = [];
+      lights[0] = new THREE.PointLight( 0xffffff, 1, 0 );
+      lights[1] = new THREE.PointLight( 0xffffff, 1, 0 );
+      lights[2] = new THREE.PointLight( 0xffffff, 1, 0 );
+
+      lights[0].position.set( 0, 200, 0);
+      lights[1].position.set( 100, 200, 100);
+      lights[2].position.set( -100, -200, -100);
+
+      lights.forEach((light) => scene.add(light));
+
+      var rand = function(mult){return (Math.random() - 0.5) * mult;}
+
+      var options = {
+        center: new THREE.Vector3(rand(1),rand(1),rand(1)),
+        position: new THREE.Vector3(rand(1),rand(1),rand(1)),
+        velocity: new THREE.Vector3(rand(1),rand(1),rand(1)),
+        force: new THREE.Vector3(rand(1),rand(1),rand(1)),
+
+        dot: 0,
+        angle: 0,
+
+        randomize: function() {
+          this.center = new THREE.Vector3(rand(1),rand(1),rand(1)),
+          this.position = new THREE.Vector3(rand(1),rand(1),rand(1)),
+          this.velocity = new THREE.Vector3(rand(1),rand(1),rand(1)),
+          this.force = new THREE.Vector3(rand(1),rand(1),rand(1))
+        }
+      };
+
+      // DAT.GUI Related Stuff
+
+      var gui = new dat.GUI();
+
+      var center = gui.addFolder('Center');
+      center.add(options.center, 'x', -1.0, 1.0).listen();
+      center.add(options.center, 'y', -1.0, 1.0).listen();
+      center.add(options.center, 'z', -1.0, 1.0).listen();
+      center.open();
+
+      var position = gui.addFolder('Position');
+      position.add(options.position, 'x', -1.0, 1.0).listen();
+      position.add(options.position, 'y', -1.0, 1.0).listen();
+      position.add(options.position, 'z', -1.0, 1.0).listen();
+      position.open();
+
+      var velocity = gui.addFolder('Velocity');
+      velocity.add(options.velocity, 'x', -1.0, 1.0).listen();
+      velocity.add(options.velocity, 'y', -1.0, 1.0).listen();
+      velocity.add(options.velocity, 'z', -1.0, 1.0).listen();
+      velocity.open();
+
+      var force = gui.addFolder('Force');
+      force.add(options.force, 'x', -1.0, 1.0).listen();
+      force.add(options.force, 'y', -1.0, 1.0).listen();
+      force.add(options.force, 'z', -1.0, 1.0).listen();
+      force.open();
+
+      var result = gui.addFolder('Result');
+      result.add(options, 'dot', -Math.PI, Math.PI).listen();
+      result.add(options, 'angle', -360.0, 360.0).listen();
+      result.open();
+
+      gui.add(options, 'randomize');
+
+      var centerArrow = new THREE.ArrowHelper( new THREE.Vector3(),new THREE.Vector3(), 0, 0xff0000 );
+      scene.add(centerArrow);
+      var positionArrow = new THREE.ArrowHelper( new THREE.Vector3(),new THREE.Vector3(), 0, 0x00ff00 );
+      scene.add(positionArrow);
+      var velocityArrow = new THREE.ArrowHelper( new THREE.Vector3(),new THREE.Vector3(), 0, 0x0000ff );
+      scene.add(velocityArrow);
+      var forceArrow = new THREE.ArrowHelper( new THREE.Vector3(),new THREE.Vector3(), 0, 0xffff00 );
+      scene.add(forceArrow);
+
+      function animate(){
+        let direction = options.center.clone().sub(options.position);
+        let distance = direction.length();
+        options.dot = options.velocity.clone().normalize().dot(direction.clone().normalize());
+        options.force = direction.multiplyScalar(Math.pow(1.5708 - options.dot, 2) * 0.02);
+
+        centerArrow.setDirection(options.center.clone().normalize());
+        centerArrow.setLength(1);
+        positionArrow.setDirection(options.position.clone().normalize());
+        positionArrow.setLength(1);
+        velocityArrow.setDirection(options.velocity.clone().normalize());
+        velocityArrow.setLength(1);
+        forceArrow.setDirection(options.force.clone().normalize());
+        forceArrow.setLength(1);
+
+        controls.update();
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+      }
+
+      window.addEventListener( 'resize', function () {
+      	camera.aspect = window.innerWidth / window.innerHeight;
+      	camera.updateProjectionMatrix();
+        renderer.setSize( window.innerWidth, window.innerHeight );
+      }, false);
+
+      animate();
+    </script>
+  </body>
+</html>

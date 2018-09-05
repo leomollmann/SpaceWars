@@ -56,7 +56,7 @@
           materials.basicLine,
           materials.phongMesh,
           new THREE.Vector3(Math.random()-0.5,Math.random()-0.5,Math.random()-0.5).multiplyScalar(50)
-         );
+        );
         ship.addCelestialBodys(celestialBodys);
         ship.addToScene(scene);
       });
@@ -69,6 +69,19 @@
         );
         body.addToScene(scene);
       });
+
+      scene.add(new THREE.Mesh(
+        new THREE.SphereGeometry( 160, 32, 32 ),
+        new THREE.MeshBasicMaterial({color: 0x00ffff, transparent: true, opacity: 0.04})
+      ));
+      scene.add(new THREE.Mesh(
+        new THREE.SphereGeometry( 240, 32, 32 ),
+        new THREE.MeshBasicMaterial({color: 0x00ffff, transparent: true, opacity: 0.04})
+      ));
+      scene.add(new THREE.Mesh(
+        new THREE.SphereGeometry( 320, 32, 32 ),
+        new THREE.MeshBasicMaterial({color: 0x00ffff, transparent: true, opacity: 0.04})
+      ));
 
       function animate(){
 		    celestialBodys.forEach((body) => body.rotate());
