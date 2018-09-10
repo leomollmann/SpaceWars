@@ -127,7 +127,7 @@ class Ship{
               this.boundingForces.push(direction.multiplyScalar(scalar));
     		}else if(distance <= body.radius * 3.0){
     		  let dot = this.velocity.clone().normalize().dot(direction.clone().normalize());
-    		  this.boundingForces.push(direction.multiplyScalar(Math.pow(1.5708 - dot, 2) * 0.02));
+    		  this.boundingForces.push(direction.multiplyScalar((Math.acos(dot) - (Math.PI/2)) * 0.2));
     		}else{
     		  let scalar = distance - (body.radius * 3.0);
           direction.normalize();
